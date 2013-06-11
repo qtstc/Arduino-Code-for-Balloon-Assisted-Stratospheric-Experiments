@@ -1,7 +1,12 @@
 #include <SdFat.h>
 #include <Time.h>  
 
-int count = 0;
+/*
+ * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
+ * 
+ * Author: Tao Qian, DePauw University 
+ */
+
 //Analog pins for LED readings.
 const int RED_ANALOG = 0;
 const int UV_ANALOG = 1;
