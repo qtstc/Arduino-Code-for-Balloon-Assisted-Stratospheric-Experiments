@@ -1,11 +1,11 @@
 #include <SdFat.h>
 #include <Time.h>  
 
-/*
- * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
- * 
- * Author: Tao Qian, DePauw University 
- */
+/**
+  * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
+  * 
+  * Author: Tao Qian, DePauw University 
+  */
 
 //Analog pins for LED readings.
 const int RED_ANALOG = 0;
@@ -16,11 +16,12 @@ const int VIOLET_ANALOG = 4;
 const int IR_ANALOG = 5;
 const int YELLOW_ANALOG_1 = 6;
 const int YELLOW_ANALOG_2 = 7;
-//Analog pins for X,Y,Z.
+//Analog pins for X,Y,Z of the tile-axis sensor.
 const int X_ANALOG = 8;
 const int Y_ANALOG = 9;
 const int Z_ANALOG = 10;
 
+//Mode for the SD card shield.
 const int chipSelect = 8;
 SdFat sd;
 SdFile myFile;
@@ -40,6 +41,9 @@ void loop()
   takeData();
 }
 
+/**
+  * Method for taking data and storing them to the sd card.
+  */
 void takeData()
 {
   int data[12];
@@ -59,15 +63,20 @@ void takeData()
   writeCSVLine(data,12);
 }
 
+/**
+  * Converts the tilt-axis reading to values in g.
+  */
 float toG(int data)
 {
   return (((float)data)*5/1024-1.65)/1.1;
 }
 
+/**
+   * Method that prints the acceleration in g along different axis.
+   *  Only used for debugging.
+   */
 void debugCompassAndTilt(int* data)
 {
-  Serial.print(count);
-  count++;
   Serial.print(" X ");
   Serial.print(toG(data[X_ANALOG]));
   Serial.print(" Y ");
@@ -78,9 +87,11 @@ void debugCompassAndTilt(int* data)
   Serial.println(data[11]);
 }
 
-//Get the reading of the compass.
-//This function assumes that the pins used by the compass are digital 22 to 29(both inclusive),
-//with 22 as the lowest bit.
+/** 
+  * Get the reading of the compass.
+  * This function assumes that the pins used by the compass are digital 22 to 29(both inclusive),
+  * with 22 as the lowest bit.
+  */
 int getCompassData()
 {
   int base = 1;
@@ -94,6 +105,10 @@ int getCompassData()
   return sum;
 }
 
+/**
+  * Initalize the file used to store data.
+  * It writes the headers for all columns to the file.
+  */
 void initializeCSVFile()
 {
   openFile();
@@ -107,6 +122,9 @@ void initializeCSVFile()
   //setTime(hr,min,sec,day,month,yr);
 }
 
+/**
+  * Write a line to the file used to store data
+  */
 void writeCSVLine(int* readings,int arraySize)
 {
   openFile();
@@ -137,6 +155,9 @@ void writeCSVLine(int* readings,int arraySize)
   myFile.close();
 }
 
+/**
+  * Open or create the file in the sd card.
+  */
 void openFile()
 {
      // open the file for write at end like the Native SD library
