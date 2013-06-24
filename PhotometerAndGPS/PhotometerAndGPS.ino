@@ -2,14 +2,19 @@
 #include <Time.h>
 #include <Wire.h>
 #include <LSM303.h>
-
-LSM303 compass;
+#include <TinyGPS.h>
 
 /**
   * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
   * 
   * Author: Tao Qian, DePauw University 
   */
+
+#define GPSBAUD  9600
+#define TERMBAUD  115200
+
+LSM303 compass;
+TinyGPS gps;
 
 //Analog pins for LED readings.
 const int IR940_ANALOG = 8;
@@ -27,7 +32,12 @@ SdFat sd;
 SdFile myFile;
 
 void setup() {
-  Serial.begin(9600);
+  
+  // Sets baud rate of your terminal program
+  Serial.begin(TERMBAUD);
+  // Sets baud rate of your GPS
+  Serial1.begin(GPSBAUD);
+  
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // change to SPI_FULL_SPEED for more performance.
@@ -38,7 +48,7 @@ void setup() {
 
 void loop()
 {
-  delay(1000);//Wait one second;
+  delay(500);//Wait one second;
   takeData();
 }
 
@@ -47,20 +57,12 @@ void loop()
   */
 void takeData()
 {
-  compass.read();
-  int data[11];
-  data[0] = analogRead(IR940_ANALOG);
-  data[1]= analogRead(IR830_ANALOG);
-  data[2]= analogRead(RED_ANALOG);
-  data[3]= analogRead(YELLOW_ANALOG);
-  data[4]= analogRead(GREEN_ANALOG);
-  data[5]= analogRead(BLUE_ANALOG);
-  data[6]= analogRead(VIOLET400_ANALOG);
-  data[7]= analogRead(UV351_ANALOG);
-  data[8] = compass.pitch();
-  data[9] = compass.roll();
-  data[10] = compass.heading();
-  writeCSVLine(data,11);
+  openFile();
+  writeTime();
+  writeLED();
+  writeCompass();
+  writeGPS();
+  myFile.close();
 }
 
 /**
@@ -92,43 +94,86 @@ void initializeCSVFile()
   openFile();
   //Initialize the column names.
   myFile.print("Time");
-  myFile.println(",IR940,IR830,RED,YELLOW,GREEN,BLUE,VIOLET400,UV351,Pitch,Roll,Heading");
+  myFile.println(",IR940,IR830,RED,YELLOW,GREEN,BLUE,VIOLET400,UV351,Pitch,Roll,Heading,GPSTime,Latitude,Longitude,Altitude,Course(degree),Speed(kmph)");
   myFile.close();
-  setTime(11,0,0,10,6,2013);//Set the time, needs to be changed every time!
   //setTime(hr,min,sec,day,month,yr);
 }
 
-/**
-  * Write a line to the file used to store data
-  */
-void writeCSVLine(int* readings,int arraySize)
+void writeTime()
 {
-  openFile();
-  //First print the time.
-  //myFile.print(year());
-  //myFile.print("-");
-  myFile.print(month());
-  myFile.print("-");
-  myFile.print(day());
-  myFile.print("_");
-  myFile.print(hour());
-  myFile.print(":");
-  myFile.print(minute());
-  myFile.print(":");
-  myFile.print(second());
+  myFile.print(millis());
   myFile.print(",");
-  for(int i = 0;i<arraySize-1;i++)
-  {
-    myFile.print(readings[i]);
-    myFile.print(",");
-    //Serial.print(readings[i]);
-    //Serial.print(",");
-  }
-  //Serial.println(readings[arraySize-1]);
-  myFile.println(readings[arraySize-1]);
+}
 
-  // close the file:
-  myFile.close();
+void writeLED()
+{
+  int data[8];
+  data[0]= analogRead(IR940_ANALOG);
+  data[1]= analogRead(IR830_ANALOG);
+  data[2]= analogRead(RED_ANALOG);
+  data[3]= analogRead(YELLOW_ANALOG);
+  data[4]= analogRead(GREEN_ANALOG);
+  data[5]= analogRead(BLUE_ANALOG);
+  data[6]= analogRead(VIOLET400_ANALOG);
+  data[7]= analogRead(UV351_ANALOG);
+  for(int i = 0;i<8;i++)
+  {
+    myFile.print(data[i]);
+    myFile.print(",");
+  }
+}
+
+void writeCompass()
+{
+  compass.read();
+  myFile.print(compass.pitch());
+  myFile.print(",");
+  myFile.print(compass.roll());
+  myFile.print(",");  
+  myFile.print(compass.heading());
+  myFile.print(",");
+}
+
+void writeGPS()
+{
+   while(Serial1.available())
+  {
+    char c = Serial1.read();
+    if(!gps.encode(c))
+    {
+      myFile.println(",,,,,");
+      return;
+    }
+    
+    int year;
+    byte month, day, hour, minute, second, hundredths;
+    gps.crack_datetime(&year,&month,&day,&hour,&minute,&second,&hundredths);
+    myFile.print(month, DEC); 
+    myFile.print("-"); 
+    myFile.print(day, DEC);
+    myFile.print("_"); 
+    myFile.print(hour, DEC);
+    Serial.print(":"); 
+    Serial.print(minute, DEC);
+    Serial.print(":");
+    Serial.print(second, DEC); 
+    Serial.print(".");
+    Serial.print(hundredths, DEC);
+    Serial.print(",");
+    
+    float latitude,longitude;
+    gps.f_get_position(&latitude,&longitude);
+    myFile.print(latitude,5);
+    myFile.print(",");
+    myFile.print(longitude,5);
+    myFile.print(",");
+    
+    myFile.print(gps.f_altitude());
+    myFile.print(",");
+    myFile.print(gps.f_course());
+    myFile.print(",");
+    myFile.println(gps.f_speed_kmph());  
+  }
 }
 
 /**
