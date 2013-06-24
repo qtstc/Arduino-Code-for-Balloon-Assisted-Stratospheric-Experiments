@@ -5,10 +5,17 @@
 #include <TinyGPS.h>
 
 /**
-  * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
-  * 
-  * Author: Tao Qian, DePauw University 
-  */
+ * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
+ * The system basically take readings from 
+ * 1) 8 LEDs,
+ * 2) LSM303 breakout board for tilt-compensated compass(https://www.sparkfun.com/products/10703),
+ * 3) GS407 GPS receiver(https://www.sparkfun.com/products/11466).
+ * The libarary used for LSM303 can be found at (https://github.com/qtstc/LSM303).
+ * The TinyGPS library is slightly modified to allow the encode(char):bool method to return true even when no satellite lock is received.
+ * This is achieved by changing the if (_gps_data_good) to if(true) in term_complete:bool.
+ * 
+ * Author: Tao Qian, DePauw University 
+ */
 
 #define GPSBAUD  9600
 #define TERMBAUD  115200
@@ -32,12 +39,11 @@ SdFat sd;
 SdFile myFile;
 
 void setup() {
-  
+
   // Sets baud rate of your terminal program
   Serial.begin(TERMBAUD);
   // Sets baud rate of your GPS
   Serial1.begin(GPSBAUD);
-  
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // change to SPI_FULL_SPEED for more performance.
@@ -48,26 +54,36 @@ void setup() {
 
 void loop()
 {
-  delay(500);//Wait one second;
+  //delay(500);//Wait one second;
   takeData();
 }
 
 /**
-  * Method for taking data and storing them to the sd card.
-  */
+ * Method for taking data and storing them to the sd card.
+ */
 void takeData()
 {
-  openFile();
-  writeTime();
-  writeLED();
-  writeCompass();
-  writeGPS();
-  myFile.close();
+  while(Serial1.available())     // While there is data on the RX pin...
+  {
+    char c = Serial1.read();    // load the data into a variable...
+    //Serial.print("C is: ");
+    Serial.print(c);
+    //Serial.println(".");
+    if(gps.encode(c))      // if there is a new valid sentence...
+    {
+      openFile();
+      writeTime();
+      writeLED();
+      writeCompass();
+      writeGPS();
+      myFile.close();       
+    }
+  }
 }
 
 /**
-  * Converts the tilt-axis reading to values in g.
-  */
+ * Converts the tilt-axis reading to values in g.
+ */
 float toG(int data)
 {
   return (((float)data)*5/1024-1.65)/1.1;
@@ -78,17 +94,21 @@ void initializeCompass()
   Wire.begin();
   compass.init();
   compass.enableDefault();
-  
+
   // Calibration values.
-  compass.m_min.x = -520; compass.m_min.y = -570; compass.m_min.z = -770;
-  compass.m_max.x = +540; compass.m_max.y = +500; compass.m_max.z = 180;
+  compass.m_min.x = -520; 
+  compass.m_min.y = -570; 
+  compass.m_min.z = -770;
+  compass.m_max.x = +540; 
+  compass.m_max.y = +500; 
+  compass.m_max.z = 180;
 }
 
 
 /**
-  * Initalize the file used to store data.
-  * It writes the headers for all columns to the file.
-  */
+ * Initalize the file used to store data.
+ * It writes the headers for all columns to the file.
+ */
 void initializeCSVFile()
 {
   openFile();
@@ -136,53 +156,45 @@ void writeCompass()
 
 void writeGPS()
 {
-   while(Serial1.available())
-  {
-    char c = Serial1.read();
-    if(!gps.encode(c))
-    {
-      myFile.println(",,,,,");
-      return;
-    }
-    
-    int year;
-    byte month, day, hour, minute, second, hundredths;
-    gps.crack_datetime(&year,&month,&day,&hour,&minute,&second,&hundredths);
-    myFile.print(month, DEC); 
-    myFile.print("-"); 
-    myFile.print(day, DEC);
-    myFile.print("_"); 
-    myFile.print(hour, DEC);
-    Serial.print(":"); 
-    Serial.print(minute, DEC);
-    Serial.print(":");
-    Serial.print(second, DEC); 
-    Serial.print(".");
-    Serial.print(hundredths, DEC);
-    Serial.print(",");
-    
-    float latitude,longitude;
-    gps.f_get_position(&latitude,&longitude);
-    myFile.print(latitude,5);
-    myFile.print(",");
-    myFile.print(longitude,5);
-    myFile.print(",");
-    
-    myFile.print(gps.f_altitude());
-    myFile.print(",");
-    myFile.print(gps.f_course());
-    myFile.print(",");
-    myFile.println(gps.f_speed_kmph());  
-  }
+
+  int year;
+  byte month, day, hour, minute, second, hundredths;
+  gps.crack_datetime(&year,&month,&day,&hour,&minute,&second,&hundredths);
+  myFile.print(month, DEC); 
+  myFile.print("-"); 
+  myFile.print(day, DEC);
+  myFile.print("_"); 
+  myFile.print(hour, DEC);
+  myFile.print(":"); 
+  myFile.print(minute, DEC);
+  myFile.print(":");
+  myFile.print(second, DEC); 
+  myFile.print(".");
+  myFile.print(hundredths, DEC);
+  myFile.print(",");
+
+  float latitude,longitude;
+  gps.f_get_position(&latitude,&longitude);
+  myFile.print(latitude,5);
+  myFile.print(",");
+  myFile.print(longitude,5);
+  myFile.print(",");
+
+  myFile.print(gps.f_altitude());
+  myFile.print(",");
+  myFile.print(gps.f_course());
+  myFile.print(",");
+  myFile.println(gps.f_speed_kmph());  
 }
 
 /**
-  * Open or create the file in the sd card.
-  */
+ * Open or create the file in the sd card.
+ */
 void openFile()
 {
-     // open the file for write at end like the Native SD library
+  // open the file for write at end like the Native SD library
   if (!myFile.open("data.csv", O_RDWR | O_CREAT | O_AT_END)) {
     sd.errorHalt("opening test.txt for write failed");
   }
 }
+
