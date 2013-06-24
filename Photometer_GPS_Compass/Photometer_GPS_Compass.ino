@@ -6,14 +6,34 @@
 
 /**
  * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
+ 
  * The system basically take readings from 
  * 1) 8 LEDs,
  * 2) LSM303 breakout board for tilt-compensated compass(https://www.sparkfun.com/products/10703),
  * 3) GS407 GPS receiver(https://www.sparkfun.com/products/11466).
+ 
  * The libarary used for LSM303 can be found at (https://github.com/qtstc/LSM303).
- * The TinyGPS library is slightly modified to allow the encode(char):bool method to return true even when no satellite lock is received.
+ * The TinyGPS 12 library(http://arduiniana.org/libraries/tinygps/) is slightly modified to allow the encode(char):bool method to return true even when no satellite lock is received.
  * This is achieved by changing the if (_gps_data_good) to if(true) in term_complete:bool.
  * 
+ * The LEDs are connecte to pin A8 to A15 of the board.
+ * The connections for LSM303 is listed below:
+ * LSM303 | Arduino Mega
+ * Vin    |    5v
+ * GND    |    GND
+ * SDA    |    SDA
+ * SCL    |    SCL
+ *
+ * The connections for GS407 is listed below:
+ * GS407  | Arduino Mega
+ * Vin    |    5v
+ * GND    |    GND
+ * TX     |    RX1
+ *
+ * An Arduino SD card shield is also required for more storage. Please note that the shield does not really work with Mega. Some jumper wires are required for it work.
+ *
+ * The file stored in the SD card is in CSV format.
+ *
  * Author: Tao Qian, DePauw University 
  */
 
@@ -54,7 +74,7 @@ void setup() {
 
 void loop()
 {
-  //delay(500);//Wait one second;
+  //Cannot use delay here. GPS will not work with delay.
   takeData();
 }
 
@@ -66,9 +86,7 @@ void takeData()
   while(Serial1.available())     // While there is data on the RX pin...
   {
     char c = Serial1.read();    // load the data into a variable...
-    //Serial.print("C is: ");
     Serial.print(c);
-    //Serial.println(".");
     if(gps.encode(c))      // if there is a new valid sentence...
     {
       openFile();
@@ -82,13 +100,9 @@ void takeData()
 }
 
 /**
- * Converts the tilt-axis reading to values in g.
- */
-float toG(int data)
-{
-  return (((float)data)*5/1024-1.65)/1.1;
-}
-
+  * Initialize the compass.
+  * To be called in setup().
+  */
 void initializeCompass()
 {
   Wire.begin();
@@ -108,6 +122,7 @@ void initializeCompass()
 /**
  * Initalize the file used to store data.
  * It writes the headers for all columns to the file.
+ * To be called in setup().
  */
 void initializeCSVFile()
 {
@@ -156,7 +171,7 @@ void writeCompass()
 
 void writeGPS()
 {
-
+  //GPS time.
   int year;
   byte month, day, hour, minute, second, hundredths;
   gps.crack_datetime(&year,&month,&day,&hour,&minute,&second,&hundredths);
@@ -172,18 +187,20 @@ void writeGPS()
   myFile.print(".");
   myFile.print(hundredths, DEC);
   myFile.print(",");
-
+  //latitude and longitude
   float latitude,longitude;
   gps.f_get_position(&latitude,&longitude);
   myFile.print(latitude,5);
   myFile.print(",");
   myFile.print(longitude,5);
   myFile.print(",");
-
+  //altitude
   myFile.print(gps.f_altitude());
   myFile.print(",");
+  //course
   myFile.print(gps.f_course());
   myFile.print(",");
+  //speed
   myFile.println(gps.f_speed_kmph());  
 }
 
