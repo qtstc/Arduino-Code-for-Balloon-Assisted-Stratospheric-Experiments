@@ -1,6 +1,10 @@
 #include <Wire.h>
 #include <LSM303.h>
 
+/**
+  * Code for testing the LSM303 sensor.
+  */
+
 LSM303 compass;
 
 void setup() {

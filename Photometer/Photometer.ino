@@ -3,6 +3,7 @@
 
 /**
   * This is the code to be run on the Arduino Mega used for BASE 2013 photometer project.
+  * Most of the code here is incorporated into the Photometer_GPS_Compass project.
   * 
   * Author: Tao Qian, DePauw University 
   */
