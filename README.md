@@ -1,4 +1,4 @@
-Arduino-Code-for-Balloon-Assisted-Stratospheric-Experiments
+Arduino Code for Balloon Assisted Stratospheric Experiments
 ===========================================================
 
 This is the code used in the Arduino Mega for collecting and storing sensor data during high altitude balloon flight for BASE research.
@@ -11,7 +11,7 @@ There are three versions.
 
 * In the [latest version](https://github.com/qtstc/Arduino-Code-for-Balloon-Assisted-Stratospheric-Experiments/blob/master/Photometer_GPS_Compass/Photometer_GPS_Compass.ino), the Arduino board takes voltage reading from eight LEDs, location and altitude information from a GPS receiver(GS407) and orientation information from a tilt-compensated compass(LSM303).
 
-# Setup guide for the latest version of the system
+## Setup guide for the latest version of the system
 
 The system takes readings from 
 * 8 LEDs,
