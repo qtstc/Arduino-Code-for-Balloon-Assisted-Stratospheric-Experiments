@@ -45,4 +45,11 @@ An Arduino SD card shield is also required for more non-volatile storage. Please
 
 The file stored in the SD card is in CSV format. The data can be visualized using the program found [here](https://github.com/qtstc/Data-Visualization-for-Balloon-Assisted-Stratospheric-Experiments).
 
-Author: Tao Qian (taoqian_2015@depauw.edu), DePauw University 
+=================================================================
+Copyright 2013 Tao Qian
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
